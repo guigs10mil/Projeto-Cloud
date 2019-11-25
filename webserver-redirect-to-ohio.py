@@ -19,6 +19,8 @@ app = FastAPI()
 
 ip = os.getenv('mongodbWebserverIp')
 
+print(ip)
+
 @app.get("/")
 async def root():
     return {"msg": "Hello World"}
