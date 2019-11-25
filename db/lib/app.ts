@@ -7,7 +7,7 @@ class App {
 
     public app: express.Application;
     public routePrv: Routes = new Routes();
-    public mongoUrl: string = 'mongodb://' + process.env.lala + ':27017/CRMdb';
+    public mongoUrl: string = 'mongodb://' + process.env.dbIp + ':27017/CRMdb';
     
     constructor() {
         this.app = express();
