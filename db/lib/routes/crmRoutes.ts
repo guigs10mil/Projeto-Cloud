@@ -13,6 +13,13 @@ export class Routes {
             })
         })
         
+        app.route('/healthcheck')
+        .get((req: Request, res: Response) => {            
+            res.status(200).send({
+                message: 'GET request successfulll!!!!'
+            })
+        })
+        
         // Contact 
         app.route('/contact') 
         // GET endpoint 
