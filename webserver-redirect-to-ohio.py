@@ -19,8 +19,6 @@ app = FastAPI()
 
 ip = os.getenv('mongodbWebserverIp')
 
-print(ip)
-
 @app.get("/")
 async def root():
     return {"msg": "Hello World"}
@@ -40,7 +38,7 @@ async def post_contact(contact: Contact):
     data = {
         "firstName": contact.firstName, 
         "lastName": contact.lastName}
-    requests.post(url = 'http://' + ip +':3000/contact', data = json.dumps(data))
+    requests.post(url = 'http://' + ip +':3000/contact', data = data)
 
 @app.get("/contact/{id}")
 async def get_contact(id: int):
@@ -52,7 +50,7 @@ async def put_contact(id: int, contact: Contact):
     data = {
         "firstName": contact.firstName, 
         "lastName": contact.lastName}
-    a = requests.put(url = 'http://' + ip +':3000/contact/' + id, data = json.dumps(data) )
+    a = requests.put(url = 'http://' + ip +':3000/contact/' + id, data = data)
     return a.json()
 
 @app.delete("/contact/{id}")
