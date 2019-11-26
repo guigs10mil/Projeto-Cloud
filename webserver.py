@@ -3,16 +3,21 @@ from enum import Enum
 from pydantic import BaseModel
 import json
 import re
+import requests
+import os
 
 
-class Tarefa(BaseModel):
-    title: str
-    done: bool
-
-tarefas = {}
+class Contact(BaseModel):
+    firstName: str
+    lastName: str
+    email: str = ''
+    company: str = ''
+    phone: int = 0
 
 
 app = FastAPI()
+
+ip = os.getenv('toOhioWebserverIp')
 
 @app.get("/")
 async def root():
@@ -20,31 +25,35 @@ async def root():
 
 @app.get("/healthcheck/")
 async def healthcheck():
-    return {"msg": "Ok"}
+    a = requests.get(url = 'http://' + ip +':8000/healthcheck')
+    return a.json()
 
-@app.get("/Tarefa/")
-async def get_tarefas():
-    return tarefas
+@app.get("/contact/")
+async def get_contacts():
+    a = requests.get(url = 'http://' + ip +':8000/contact')
+    return a.json()
 
-@app.post("/Tarefa/")
-async def post_tarefa(tarefa: Tarefa):
-    if len(tarefas) > 0:
-        id_counter = list(tarefas)[-1] + 1
-    else:
-        id_counter = 0
-    tarefas[id_counter] = {'title': tarefa.title, 'done': tarefa.done}
-    return {"msg": "Tarefa posted"}
+@app.post("/contact/")
+async def post_contact(contact: Contact):
+    data = {
+        "firstName": contact.firstName, 
+        "lastName": contact.lastName}
+    requests.post(url = 'http://' + ip +':8000/contact', data = json.dumps(data))
 
-@app.get("/Tarefa/{id}")
-async def get_tarefa(id: int):
-    return tarefas[id]
+@app.get("/contact/{id}")
+async def get_contact(id: str):
+    a = requests.get(url = 'http://' + ip +':8000/contact/' + id)
+    return a.json()
 
-@app.put("/Tarefa/{id}")
-async def put_tarefa(id: int, tarefa: Tarefa):
-    tarefas[id] = {'title': tarefa.title, 'done': tarefa.done}
-    return {"msg": "Tarefa putted"}
+@app.put("/contact/{id}")
+async def put_contact(id: str, contact: Contact):
+    data = {
+        "firstName": contact.firstName, 
+        "lastName": contact.lastName}
+    a = requests.put(url = 'http://' + ip +':8000/contact/' + id, data = json.dumps(data))
+    return a.json()
 
-@app.delete("/Tarefa/{id}")
-async def delete_tarefa(id: int):
-    del tarefas[id]
-    return {"msg": "Tarefa deleted"}
+@app.delete("/contact/{id}")
+async def delete_contact(id: str):
+    a = requests.delete(url = 'http://' + ip +':8000/contact/' + id)
+    return a.json()

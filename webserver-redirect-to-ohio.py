@@ -38,22 +38,23 @@ async def post_contact(contact: Contact):
     data = {
         "firstName": contact.firstName, 
         "lastName": contact.lastName}
-    requests.post(url = 'http://' + ip +':3000/contact', data = json.dumps(data))
+    a = requests.post(url = 'http://' + ip +':3000/contact', data = data)
+    return a.json()
 
 @app.get("/contact/{id}")
-async def get_contact(id: int):
+async def get_contact(id: str):
     a = requests.get(url = 'http://' + ip +':3000/contact/' + id)
     return a.json()
 
 @app.put("/contact/{id}")
-async def put_contact(id: int, contact: Contact):
+async def put_contact(id: str, contact: Contact):
     data = {
         "firstName": contact.firstName, 
         "lastName": contact.lastName}
-    a = requests.put(url = 'http://' + ip +':3000/contact/' + id, data = json.dumps(data) )
+    a = requests.put(url = 'http://' + ip +':3000/contact/' + id, data = data)
     return a.json()
 
 @app.delete("/contact/{id}")
-async def delete_contact(id: int):
+async def delete_contact(id: str):
     a = requests.delete(url = 'http://' + ip +':3000/contact/' + id)
     return a.json()
