@@ -279,6 +279,16 @@ def createInstance(instanceName, groupName, keyName, publicip):
     print("Instance created")
     return instance
 
+def getInstanceIp(groupName, ipType):
+    r = ec2.describe_instances()
+    ip = 0
+    for i in r['Reservations']:
+        for j in i['Instances']:
+            for k in j['SecurityGroups']:
+                if k['GroupName'] == groupName:
+                    ip = j[ipType]
+    return ip
+
 def createKeyPair(keyPairName):
     print('Creating Key Pair:', keyPairName)
     response = ec2.create_key_pair(KeyName = keyPairName)
@@ -303,17 +313,6 @@ def deleteKeyPairOhio(keyPairName):
 
 def deleteInstancesOhio(key, value):
     print('Deleting Instances')
-    # response = ec2_ohio.describe_instances(
-    # Filters=[
-    #     {
-    #         'Name': 'tag:%s' % (key),
-    #         'Values': [value]
-    #     },
-    # ],
-    # DryRun = False,
-    # MaxResults = 5)
-    # ifnull = response["Reservations"]
-    # if ifnull != []:
     try:
         ec2r_ohio.instances.filter(Filters=[{
             'Name': 'tag:%s' % (key),
@@ -468,8 +467,32 @@ def createSecurityGroupOhio(groupName, ports):
     id = response['SecurityGroups'][0]['GroupId']
     return id
 
+def editSecurityGroupOhio(groupName, port, ip):
+    print('Editing Security Group:', groupName)
+    try:
+        ec2_ohio.revoke_security_group_ingress(
+            GroupName = groupName,
+            IpPermissions = [{'IpProtocol': 'tcp', 'FromPort': port, 'ToPort': port, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}]
+        )
+        ec2_ohio.authorize_security_group_ingress(
+            GroupName = groupName,
+            IpPermissions = [{'IpProtocol': 'tcp', 'FromPort': port, 'ToPort': port, 'IpRanges': [{'CidrIp': '%s/32' % (ip)}]}]
+        )
+        print('Security Group created')
+        return
+        
+    except ClientError as e:
+        print(e)
 
-
+def getInstanceIpOhio(groupName, ipType):
+    r = ec2_ohio.describe_instances()
+    ip = 0
+    for i in r['Reservations']:
+        for j in i['Instances']:
+            for k in j['SecurityGroups']:
+                if k['GroupName'] == groupName:
+                    ip = j[ipType]
+    return ip
 
 # -- OHIO -- #
 print()
@@ -486,18 +509,15 @@ deleteSecurityGroupOhio(sec_group_name_mongo)
 deleteSecurityGroupOhio(sec_group_name_ohio)
 
 createKeyPairOhio(keypair_name_ohio)
-createSecurityGroupOhio(sec_group_name_mongo, [22, 27017])
+createSecurityGroupOhio(sec_group_name_mongo, [27017])
 mongoInstance = createInstanceMongo('mongodb-gui-ohio', sec_group_name_mongo, keypair_name_ohio)
-r = ec2_ohio.describe_instances()
-ip = 0
-for i in r['Reservations']:
-    for j in i['Instances']:
-        for k in j['SecurityGroups']:
-            if k['GroupName'] == sec_group_name_mongo:
-                ip = j['PrivateIpAddress']
-print('Mongodb Instance Private IP = ', ip)
-createSecurityGroupOhio(sec_group_name_ohio, [22, 27017, 3000])
+ip = getInstanceIpOhio(sec_group_name_mongo, 'PrivateIpAddress')
+print('Mongodb Instance Private IP =', ip)
+createSecurityGroupOhio(sec_group_name_ohio, [3000])
 createInstanceOhio('webserver-gui-ohio', sec_group_name_ohio, keypair_name_ohio, ip)
+ip = getInstanceIpOhio(sec_group_name_ohio, 'PrivateIpAddress')
+editSecurityGroupOhio(sec_group_name_mongo, 27017, ip)
+
 
 
 
@@ -534,16 +554,12 @@ print()
 
 
 createKeyPair(keypair_name)
-createSecurityGroup(sec_group_to_ohio_name, [22, 8000, 3000])
-r = ec2_ohio.describe_instances()
-for i in r['Reservations']:
-    for j in i['Instances']:
-        for k in j['SecurityGroups']:
-            if k['GroupName'] == sec_group_name_ohio:
-                ip = j['PublicIpAddress']
-print('Ohio Webserver Instance Public IP = ', ip)
+createSecurityGroup(sec_group_to_ohio_name, [8000])
+ip = getInstanceIpOhio(sec_group_name_ohio, 'PublicIpAddress')
+print('Ohio Webserver Instance Public IP =', ip)
 createInstance('webserver-to-ohio-gui', sec_group_to_ohio_name, keypair_name, ip)
-
+ip = getInstanceIp(sec_group_to_ohio_name, 'PublicIpAddress')
+editSecurityGroupOhio(sec_group_name_ohio, 3000, ip)
 
 
 # -- AUTO SCALING -- #
@@ -557,9 +573,9 @@ for i in r['Reservations']:
         for k in j['SecurityGroups']:
             if k['GroupName'] == sec_group_to_ohio_name:
                 ip = j['PrivateIpAddress']
-print('To Ohio Webserver Instance Private IP = ', ip)
+print('To Ohio Webserver Instance Private IP =', ip)
 
-securityGroupID = createSecurityGroup(sec_group_name, [22, 8000])
+securityGroupID = createSecurityGroup(sec_group_name, [8000])
 LBsecurityGroupID = createSecurityGroup(lb_sec_group_name, [80])
 createLoadBalancer(lb_name, LBsecurityGroupID)
 tg_arn = createTargetGroup(tg_name, 8000)
